@@ -33,14 +33,14 @@ def require_spotify_auth(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
         token = sp_oauth.get_cached_token()
-        if not token:
+        if not token or not sp_oauth.validate_token(token):
             return redirect(sp_oauth.get_authorize_url())
         return f(*args, **kwargs)
     return wrapper
 
 def get_spotify_client():
     token = sp_oauth.get_cached_token()
-    if token and sp_oauth.is_token_expired(token):
+    if not token or not sp_oauth.validate_token(token):
         token = sp_oauth.refresh_access_token(token['refresh_token'])
     return Spotify(auth=token['access_token']) if token else None
 
