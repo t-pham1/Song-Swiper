@@ -25,20 +25,24 @@ sp_oauth = SpotifyOAuth(
     redirect_uri = REDIRECT_URI,
     scope = SCOPE,
     cache_handler = cache_handler,
-    show_dialog = True # true for debugging purposes, makes user log in every time
+    # show_dialog = True # true for debugging purposes, makes user authenticate every hour?
 )
-sp = Spotify(auth_manager=sp_oauth)
 
 # --- helper functions ---
 def require_spotify_auth(f):
     @wraps(f)
     def wrapper(*args, **kwargs):
-        token = cache_handler.get_cached_token()
-        if not sp_oauth.validate_token(token):
-            auth_url = sp_oauth.get_authorize_url()
-            return redirect(auth_url)
+        token = sp_oauth.get_cached_token()
+        if not token:
+            return redirect(sp_oauth.get_authorize_url())
         return f(*args, **kwargs)
     return wrapper
+
+def get_spotify_client():
+    token = sp_oauth.get_cached_token()
+    if token and sp_oauth.is_token_expired(token):
+        token = sp_oauth.refresh_access_token(token['refresh_token'])
+    return Spotify(auth=token['access_token']) if token else None
 
 def get_all_tracks(fetch_func, **kwargs):
     items = []
@@ -76,6 +80,7 @@ def callback():
 @app.route('/dashboard')
 @require_spotify_auth
 def dashboard():
+    sp = get_spotify_client()
     user = sp.current_user()
     name = user.get('display_name', 'user')
     
@@ -90,6 +95,8 @@ def dashboard():
 @app.route('/select_playlist')
 @require_spotify_auth
 def select_playlist():
+    sp = get_spotify_client()
+    # user = sp.current_user()
     playlists = sp.current_user_playlists()
     form_html = "<h1>Select a playlist</h1><form method='POST' action='/selected_playlist'>"
     
@@ -108,6 +115,8 @@ def select_playlist():
 @app.route('/selected_playlist', methods=['POST'])
 @require_spotify_auth
 def selected_playlist():
+    sp = get_spotify_client()
+    # user = sp.current_user()
     playlist_id = request.form['playlist_id']
     
     if playlist_id == 'liked':
