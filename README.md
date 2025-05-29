@@ -1,9 +1,8 @@
 # Song-Swiper
 
 ## Prerequisites
-- Python 3.13.3
-- pip 25.1.1
-- git 2.49.0
+- python3
+- pip3
 
 ## Requirements
 - Flask 3.0.2
